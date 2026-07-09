@@ -334,6 +334,7 @@ async function iniciar() {
       'Falta configurar la URL del Apps Script en index.html (constante APPS_SCRIPT_URL).';
     return;
   }
+  document.getElementById('usuarioInfo').textContent = 'Identificando cuenta…';
   try {
     const data = await llamar('whoami');
     usuarioActual = data.usuario;
@@ -343,8 +344,26 @@ async function iniciar() {
     await cargarAlumnos();
     mostrarVista('vistaListado');
   } catch (err) {
-    document.getElementById('cargando').innerHTML = err.message;
+    document.getElementById('usuarioInfo').textContent = 'Sin identificar';
+    mostrarPantallaAcceso(err.message);
   }
+}
+
+function mostrarPantallaAcceso(mensajeError) {
+  document.querySelectorAll('main > section').forEach(s => s.classList.add('oculto'));
+  const cargando = document.getElementById('cargando');
+  cargando.classList.remove('oculto');
+  cargando.innerHTML =
+    '<div class="tarjeta" style="max-width:480px; margin:0 auto; text-align:left;">' +
+    '<h2 style="margin-top:0">🔑 Iniciá sesión con Google</h2>' +
+    '<p style="color:var(--tinta-suave)">' + mensajeError + '</p>' +
+    '<p style="color:var(--tinta-suave)">Tocá el primer botón para loguearte con tu cuenta de Google en una pestaña nueva. ' +
+    'Vas a ver un texto simple que dice "El backend está funcionando" — eso confirma que ya iniciaste sesión. ' +
+    'Después volvé acá y tocá "Ya inicié sesión".</p>' +
+    '<div class="fila-acciones">' +
+    '<button class="btn-principal" onclick="window.open(APPS_SCRIPT_URL, \'_blank\')">Iniciar sesión con Google</button>' +
+    '<button class="btn-secundario" onclick="iniciar()">Ya inicié sesión, reintentar</button>' +
+    '</div></div>';
 }
 
 async function cargarCategorias() {
