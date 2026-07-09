@@ -4,52 +4,77 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Legajos · Nivel Inicial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --papel: #FAF7F0;
-    --tinta: #2B2E26;
-    --tinta-suave: #6B7060;
-    --salvia: #7C9473;
-    --salvia-oscuro: #5A7052;
-    --coral: #C97064;
-    --linea: #E3DFD3;
+    --papel: #FDF9F3;
+    --tinta: #4A4034;
+    --tinta-suave: #8E8272;
+    --lavanda: #B9A9DB;
+    --lavanda-oscura: #7C64AC;
+    --menta: #9FD8C7;
+    --menta-oscura: #4E9C83;
+    --durazno: #F3B79C;
+    --durazno-oscuro: #DE7E52;
+    --amarillo: #F6D989;
+    --cielo: #A8CFEA;
+    --linea: #EFE6DA;
     --tarjeta: #FFFFFF;
-    --sombra: 0 1px 3px rgba(43,46,38,0.08), 0 4px 12px rgba(43,46,38,0.06);
+    --sombra: 0 2px 6px rgba(124,100,172,0.08), 0 8px 20px rgba(124,100,172,0.07);
+    --radio: 16px;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--papel);
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(185,169,219,0.13), transparent 42%),
+      radial-gradient(circle at 96% 18%, rgba(159,216,199,0.16), transparent 40%),
+      var(--papel);
     color: var(--tinta);
-    line-height: 1.5;
+    line-height: 1.55;
   }
+  h1, h2, h3 { font-family: 'Quicksand', 'Nunito', sans-serif; font-weight: 700; }
+
   header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--linea);
+    padding: 22px 28px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
+    background: var(--tarjeta);
+    border-bottom: 3px solid var(--lavanda);
+    position: sticky; top: 0; z-index: 10;
   }
   header h1 {
-    font-size: 20px;
+    font-size: 22px;
     margin: 0;
     letter-spacing: 0.2px;
+    display: flex; align-items: center; gap: 10px;
   }
-  header h1 span { color: var(--salvia-oscuro); }
-  #usuarioInfo { font-size: 13px; color: var(--tinta-suave); text-align: right; }
-  main { max-width: 980px; margin: 0 auto; padding: 24px; }
+  header h1::before {
+    content: '🌱';
+    font-size: 22px;
+  }
+  header h1 span { color: var(--lavanda-oscura); font-weight: 500; }
+  #usuarioInfo {
+    font-size: 13px; color: var(--tinta-suave); text-align: right;
+    background: #F5F1FA; padding: 6px 14px; border-radius: 100px;
+  }
+  #usuarioInfo small { color: var(--lavanda-oscura); font-weight: 700; }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 24px 60px; }
   .oculto { display: none !important; }
 
   .tarjeta {
     background: var(--tarjeta);
     border: 1px solid var(--linea);
-    border-radius: 10px;
+    border-radius: var(--radio);
     box-shadow: var(--sombra);
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 22px;
+    margin-bottom: 22px;
   }
   .fila-acciones {
     display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;
@@ -57,45 +82,66 @@
   input, select, textarea {
     font-family: inherit;
     font-size: 14px;
-    padding: 9px 11px;
-    border: 1px solid var(--linea);
-    border-radius: 6px;
+    padding: 10px 13px;
+    border: 2px solid var(--linea);
+    border-radius: 10px;
     background: var(--papel);
     color: var(--tinta);
+    transition: border-color .15s ease;
   }
-  textarea { width: 100%; min-height: 90px; resize: vertical; }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--lavanda);
+  }
+  textarea { width: 100%; min-height: 90px; resize: vertical; font-family: 'Nunito', sans-serif; }
   button {
-    font-family: inherit;
+    font-family: 'Quicksand', sans-serif;
     font-size: 14px;
-    padding: 9px 16px;
-    border-radius: 6px;
+    padding: 10px 18px;
+    border-radius: 100px;
     border: none;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
+    transition: transform .1s ease, box-shadow .15s ease;
   }
-  .btn-principal { background: var(--salvia-oscuro); color: white; }
-  .btn-principal:hover { background: #4a5e44; }
-  .btn-secundario { background: transparent; color: var(--salvia-oscuro); border: 1px solid var(--salvia); }
-  .btn-peligro { background: transparent; color: var(--coral); border: 1px solid var(--coral); }
-  .btn-chico { padding: 5px 10px; font-size: 12px; }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  .btn-principal { background: var(--lavanda-oscura); color: white; box-shadow: 0 3px 10px rgba(124,100,172,0.35); }
+  .btn-principal:hover { background: #6b559a; }
+  .btn-secundario { background: #F0EBFA; color: var(--lavanda-oscura); }
+  .btn-secundario:hover { background: #E4DBF5; }
+  .btn-peligro { background: #FCEAE3; color: var(--durazno-oscuro); }
+  .btn-peligro:hover { background: #F9DACB; }
+  .btn-chico { padding: 6px 12px; font-size: 12px; }
 
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tinta-suave); padding: 8px 10px; border-bottom: 2px solid var(--linea); }
-  td { padding: 10px; border-bottom: 1px solid var(--linea); font-size: 14px; }
-  tr.fila-alumno { cursor: pointer; }
-  tr.fila-alumno:hover { background: #F3F1E9; }
-  .etiqueta-estado {
-    font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 600;
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--tinta-suave); padding: 10px; border-bottom: 2px solid var(--linea); font-weight: 700; }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--linea); font-size: 14px; }
+  tr.fila-alumno { cursor: pointer; transition: background .1s ease; }
+  tr.fila-alumno:hover { background: #FAF6FF; }
+  .fila-nombre { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 12px; color: white;
+    flex-shrink: 0;
   }
-  .estado-activo { background: #E7EEE4; color: var(--salvia-oscuro); }
-  .estado-pase { background: #EFE6E0; color: var(--coral); }
+  .etiqueta-estado {
+    font-size: 11px; padding: 3px 10px; border-radius: 100px; font-weight: 700;
+  }
+  .estado-activo { background: #E4F5EE; color: var(--menta-oscura); }
+  .estado-pase { background: #FCEAE3; color: var(--durazno-oscuro); }
 
   .categoria-etiqueta {
-    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px;
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 11px;
     border-radius: 100px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;
   }
 
-  .entrada { border-left: 3px solid var(--linea); padding: 10px 14px; margin-bottom: 12px; }
+  .entrada {
+    border-left: 4px solid var(--lavanda);
+    background: #FBF9FF;
+    border-radius: 0 12px 12px 0;
+    padding: 12px 16px; margin-bottom: 12px;
+  }
   .entrada-meta { font-size: 12px; color: var(--tinta-suave); margin-bottom: 4px; }
   .entrada-desc { white-space: pre-wrap; }
   .entrada-acciones { margin-top: 8px; }
@@ -103,11 +149,11 @@
   #vistaLegajo h2 { margin-top: 0; }
   #vistaLegajo .datos-alumno { font-size: 13px; color: var(--tinta-suave); margin-bottom: 20px; }
 
-  .mensaje { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
-  .mensaje-error { background: #F7E1E1; color: #964343; }
-  .mensaje-ok { background: #E7EEE4; color: var(--salvia-oscuro); }
+  .mensaje { padding: 12px 16px; border-radius: 12px; font-size: 13px; margin-bottom: 16px; font-weight: 600; }
+  .mensaje-error { background: #FCEAE3; color: var(--durazno-oscuro); }
+  .mensaje-ok { background: #E4F5EE; color: var(--menta-oscura); }
 
-  .cargando { text-align: center; color: var(--tinta-suave); padding: 40px; font-size: 14px; }
+  .cargando { text-align: center; color: var(--tinta-suave); padding: 50px; font-size: 14px; }
   footer { text-align: center; padding: 30px; font-size: 12px; color: var(--tinta-suave); }
 </style>
 </head>
@@ -125,7 +171,7 @@
   <section id="vistaListado" class="oculto">
     <div class="tarjeta">
       <div class="fila-acciones">
-        <input id="buscarAlumno" placeholder="Buscar por nombre o apellido…" oninput="renderizarListado()">
+        <input id="buscarAlumno" placeholder="🔍 Buscar por nombre o apellido…" oninput="renderizarListado()">
         <select id="filtroSala" onchange="renderizarListado()">
           <option value="">Todas las salas</option>
         </select>
@@ -135,7 +181,7 @@
           <option value="">Todos</option>
         </select>
         <span style="flex:1"></span>
-        <button class="btn-secundario" onclick="abrirExportacionLote()">Exportar pase a primario</button>
+        <button class="btn-secundario" onclick="abrirExportacionLote()">🎓 Exportar pase a primario</button>
         <button class="btn-principal" onclick="abrirFormularioNuevoAlumno()">+ Nuevo legajo</button>
       </div>
       <table>
@@ -345,9 +391,11 @@ function renderizarListado() {
     const check = modoSeleccionLote
       ? '<input type="checkbox" class="check-lote" value="' + a.id + '" onclick="event.stopPropagation()">'
       : '';
+    const inicial = (a.nombre || '?').trim().charAt(0).toUpperCase();
+    const colorAv = colorParaCategoria(a.apellido + a.nombre);
     return '<tr class="fila-alumno" onclick="abrirLegajo(\'' + a.id + '\')">' +
       '<td>' + check + '</td>' +
-      '<td>' + a.apellido + ', ' + a.nombre + '</td>' +
+      '<td><div class="fila-nombre"><div class="avatar" style="background:' + colorAv.texto + '">' + inicial + '</div>' + a.apellido + ', ' + a.nombre + '</div></td>' +
       '<td>' + (a.sala || '—') + '</td>' +
       '<td>' + (a.dni || '—') + '</td>' +
       '<td><span class="etiqueta-estado ' + claseEstado + '">' + a.estado + '</span></td>' +
