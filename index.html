@@ -83,7 +83,9 @@
   #usuarioInfo {
     font-size: 13px; color: var(--tinta-suave); text-align: right;
     background: #F5F1FA; padding: 6px 14px; border-radius: 100px;
+    cursor: pointer;
   }
+  #usuarioInfo:hover { background: #ECE3F8; }
   #usuarioInfo small { color: var(--lavanda-oscura); font-weight: 700; }
   main { max-width: 980px; margin: 0 auto; padding: 28px 24px 60px; }
   .oculto { display: none !important; }
@@ -181,7 +183,7 @@
 
 <header>
   <h1>Legajos <span>· Nivel Inicial</span></h1>
-  <div id="usuarioInfo">Identificando cuenta…</div>
+  <div id="usuarioInfo" onclick="cambiarCuenta()" title="Tocá para cambiar de cuenta">Identificando cuenta…</div>
 </header>
 
 <main>
@@ -280,7 +282,10 @@
 // (Implementar > Nueva implementación > Aplicación web)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5DIulgCWzd-wT5F2Yu9gJIIVbywtWjez-vyiE679ErT2Y9vceN5lkoi8xLwuKAPw3/exec';
 
+const CLAVE_LOCALSTORAGE = 'legajos_email_usuario';
+
 let usuarioActual = null;
+let emailActual = null;
 let alumnos = [];
 let idAlumnoActual = null;
 let modoSeleccionLote = false;
@@ -306,39 +311,16 @@ function colorParaCategoria(nombre) {
 }
 
 // ============ LLAMADAS AL BACKEND ============
-let contadorJsonp = 0;
-
 async function llamar(action, extra) {
-  const cuerpo = Object.assign({ action: action }, extra || {});
-  return new Promise((resolve, reject) => {
-    contadorJsonp++;
-    const nombreCallback = 'jsonp_cb_' + Date.now() + '_' + contadorJsonp;
-    const script = document.createElement('script');
-
-    const limpiar = () => {
-      delete window[nombreCallback];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      clearTimeout(temporizador);
-    };
-
-    const temporizador = setTimeout(() => {
-      limpiar();
-      reject(new Error('El servidor no respondió a tiempo. Probá de nuevo.'));
-    }, 20000);
-
-    window[nombreCallback] = (data) => {
-      limpiar();
-      if (!data.ok) reject(new Error(data.error || 'Error desconocido'));
-      else resolve(data);
-    };
-
-    const url = APPS_SCRIPT_URL +
-      '?payload=' + encodeURIComponent(JSON.stringify(cuerpo)) +
-      '&callback=' + nombreCallback;
-    script.src = url;
-    script.onerror = () => { limpiar(); reject(new Error('No se pudo contactar al servidor. Revisá tu conexión.')); };
-    document.body.appendChild(script);
+  const cuerpo = Object.assign({ action: action, email: emailActual }, extra || {});
+  const resp = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(cuerpo)
   });
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  return data;
 }
 
 function mostrarMensaje(texto, tipo) {
@@ -347,14 +329,59 @@ function mostrarMensaje(texto, tipo) {
   setTimeout(function () { div.innerHTML = ''; }, 6000);
 }
 
-// ============ INICIO ============
+// ============ ENTRADA: ELEGIR USUARIO ============
 async function iniciar() {
   if (APPS_SCRIPT_URL.indexOf('PEGAR_ACA') !== -1) {
     document.getElementById('cargando').innerHTML =
       'Falta configurar la URL del Apps Script en index.html (constante APPS_SCRIPT_URL).';
     return;
   }
-  document.getElementById('usuarioInfo').textContent = 'Identificando cuenta…';
+  const emailGuardado = localStorage.getItem(CLAVE_LOCALSTORAGE);
+  if (emailGuardado) {
+    emailActual = emailGuardado;
+    await verificarSesion();
+  } else {
+    await mostrarPantallaLogin();
+  }
+}
+
+async function mostrarPantallaLogin(mensajeError) {
+  document.querySelectorAll('main > section').forEach(s => s.classList.add('oculto'));
+  const cargando = document.getElementById('cargando');
+  cargando.classList.remove('oculto');
+  cargando.innerHTML =
+    '<div class="tarjeta" style="max-width:420px; margin:0 auto; text-align:center;">' +
+    '<h2 style="margin-top:0">👋 ¡Hola!</h2>' +
+    (mensajeError ? '<p class="mensaje mensaje-error">' + mensajeError + '</p>' : '') +
+    '<p style="color:var(--tinta-suave)">Elegí quién sos para entrar a los legajos.</p>' +
+    '<select id="selectorUsuario" style="width:100%; margin-top:12px"><option>Cargando…</option></select>' +
+    '<div style="margin-top:16px"><button class="btn-principal" onclick="entrarConUsuarioElegido()">Entrar</button></div>' +
+    '</div>';
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'listarUsuariosParaLogin' })
+    });
+    const data = await resp.json();
+    const sel = document.getElementById('selectorUsuario');
+    sel.innerHTML = data.usuarios.map(u =>
+      '<option value="' + u.email + '">' + u.nombre + ' — ' + u.rol + '</option>'
+    ).join('');
+  } catch (err) {
+    document.getElementById('cargando').innerHTML = 'No se pudo contactar al servidor: ' + err.message;
+  }
+}
+
+async function entrarConUsuarioElegido() {
+  const sel = document.getElementById('selectorUsuario');
+  emailActual = sel.value;
+  localStorage.setItem(CLAVE_LOCALSTORAGE, emailActual);
+  await verificarSesion();
+}
+
+async function verificarSesion() {
+  document.getElementById('usuarioInfo').textContent = 'Identificando…';
   try {
     const data = await llamar('whoami');
     usuarioActual = data.usuario;
@@ -365,25 +392,16 @@ async function iniciar() {
     mostrarVista('vistaListado');
   } catch (err) {
     document.getElementById('usuarioInfo').textContent = 'Sin identificar';
-    mostrarPantallaAcceso(err.message);
+    localStorage.removeItem(CLAVE_LOCALSTORAGE);
+    mostrarPantallaLogin(err.message);
   }
 }
 
-function mostrarPantallaAcceso(mensajeError) {
-  document.querySelectorAll('main > section').forEach(s => s.classList.add('oculto'));
-  const cargando = document.getElementById('cargando');
-  cargando.classList.remove('oculto');
-  cargando.innerHTML =
-    '<div class="tarjeta" style="max-width:480px; margin:0 auto; text-align:left;">' +
-    '<h2 style="margin-top:0">🔑 Iniciá sesión con Google</h2>' +
-    '<p style="color:var(--tinta-suave)">' + mensajeError + '</p>' +
-    '<p style="color:var(--tinta-suave)">Tocá el primer botón para loguearte con tu cuenta de Google en una pestaña nueva. ' +
-    'Vas a ver un texto simple que dice "El backend está funcionando" — eso confirma que ya iniciaste sesión. ' +
-    'Después volvé acá y tocá "Ya inicié sesión".</p>' +
-    '<div class="fila-acciones">' +
-    '<button class="btn-principal" onclick="window.open(APPS_SCRIPT_URL, \'_blank\')">Iniciar sesión con Google</button>' +
-    '<button class="btn-secundario" onclick="iniciar()">Ya inicié sesión, reintentar</button>' +
-    '</div></div>';
+function cambiarCuenta() {
+  emailActual = null;
+  usuarioActual = null;
+  localStorage.removeItem(CLAVE_LOCALSTORAGE);
+  mostrarPantallaLogin();
 }
 
 async function cargarCategorias() {
