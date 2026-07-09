@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legajos · Nivel Inicial</title>
+<style>
+  :root {
+    --papel: #FAF7F0;
+    --tinta: #2B2E26;
+    --tinta-suave: #6B7060;
+    --salvia: #7C9473;
+    --salvia-oscuro: #5A7052;
+    --coral: #C97064;
+    --linea: #E3DFD3;
+    --tarjeta: #FFFFFF;
+    --sombra: 0 1px 3px rgba(43,46,38,0.08), 0 4px 12px rgba(43,46,38,0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--papel);
+    color: var(--tinta);
+    line-height: 1.5;
+  }
+  header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--linea);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 20px;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header h1 span { color: var(--salvia-oscuro); }
+  #usuarioInfo { font-size: 13px; color: var(--tinta-suave); text-align: right; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px; }
+  .oculto { display: none !important; }
+
+  .tarjeta {
+    background: var(--tarjeta);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .fila-acciones {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;
+  }
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 11px;
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    background: var(--papel);
+    color: var(--tinta);
+  }
+  textarea { width: 100%; min-height: 90px; resize: vertical; }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-principal { background: var(--salvia-oscuro); color: white; }
+  .btn-principal:hover { background: #4a5e44; }
+  .btn-secundario { background: transparent; color: var(--salvia-oscuro); border: 1px solid var(--salvia); }
+  .btn-peligro { background: transparent; color: var(--coral); border: 1px solid var(--coral); }
+  .btn-chico { padding: 5px 10px; font-size: 12px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tinta-suave); padding: 8px 10px; border-bottom: 2px solid var(--linea); }
+  td { padding: 10px; border-bottom: 1px solid var(--linea); font-size: 14px; }
+  tr.fila-alumno { cursor: pointer; }
+  tr.fila-alumno:hover { background: #F3F1E9; }
+  .etiqueta-estado {
+    font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 600;
+  }
+  .estado-activo { background: #E7EEE4; color: var(--salvia-oscuro); }
+  .estado-pase { background: #EFE6E0; color: var(--coral); }
+
+  .categoria-etiqueta {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 100px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+
+  .entrada { border-left: 3px solid var(--linea); padding: 10px 14px; margin-bottom: 12px; }
+  .entrada-meta { font-size: 12px; color: var(--tinta-suave); margin-bottom: 4px; }
+  .entrada-desc { white-space: pre-wrap; }
+  .entrada-acciones { margin-top: 8px; }
+
+  #vistaLegajo h2 { margin-top: 0; }
+  #vistaLegajo .datos-alumno { font-size: 13px; color: var(--tinta-suave); margin-bottom: 20px; }
+
+  .mensaje { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+  .mensaje-error { background: #F7E1E1; color: #964343; }
+  .mensaje-ok { background: #E7EEE4; color: var(--salvia-oscuro); }
+
+  .cargando { text-align: center; color: var(--tinta-suave); padding: 40px; font-size: 14px; }
+  footer { text-align: center; padding: 30px; font-size: 12px; color: var(--tinta-suave); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Legajos <span>· Nivel Inicial</span></h1>
+  <div id="usuarioInfo">Identificando cuenta…</div>
+</header>
+
+<main>
+  <div id="mensajes"></div>
+
+  <!-- VISTA: LISTADO -->
+  <section id="vistaListado" class="oculto">
+    <div class="tarjeta">
+      <div class="fila-acciones">
+        <input id="buscarAlumno" placeholder="Buscar por nombre o apellido…" oninput="renderizarListado()">
+        <select id="filtroSala" onchange="renderizarListado()">
+          <option value="">Todas las salas</option>
+        </select>
+        <select id="filtroEstado" onchange="renderizarListado()">
+          <option value="Activo">Activos</option>
+          <option value="Pasó a Primario">Pasaron a Primario</option>
+          <option value="">Todos</option>
+        </select>
+        <span style="flex:1"></span>
+        <button class="btn-secundario" onclick="abrirExportacionLote()">Exportar pase a primario</button>
+        <button class="btn-principal" onclick="abrirFormularioNuevoAlumno()">+ Nuevo legajo</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:30px" id="thCheck"></th>
+          <th>Apellido, Nombre</th><th>Sala</th><th>DNI</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="cuerpoListado"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VISTA: NUEVO ALUMNO -->
+  <section id="vistaNuevoAlumno" class="oculto">
+    <div class="tarjeta">
+      <h2>Nuevo legajo</h2>
+      <div class="fila-acciones">
+        <input id="nuevoNombre" placeholder="Nombre">
+        <input id="nuevoApellido" placeholder="Apellido">
+        <input id="nuevoDNI" placeholder="DNI">
+      </div>
+      <div class="fila-acciones">
+        <input id="nuevoFechaNac" type="date" placeholder="Fecha de nacimiento">
+        <input id="nuevoSala" placeholder="Sala (ej: Sala Verde)">
+      </div>
+      <div class="fila-acciones">
+        <button class="btn-principal" onclick="crearAlumno()">Crear legajo</button>
+        <button class="btn-secundario" onclick="mostrarVista('vistaListado')">Cancelar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA: LEGAJO INDIVIDUAL -->
+  <section id="vistaLegajo" class="oculto">
+    <button class="btn-secundario btn-chico" onclick="mostrarVista('vistaListado')">← Volver al listado</button>
+    <div class="tarjeta" style="margin-top:16px">
+      <div class="fila-acciones" style="justify-content: space-between;">
+        <div>
+          <h2 id="legajoNombre"></h2>
+          <div class="datos-alumno" id="legajoDatos"></div>
+        </div>
+        <div class="fila-acciones">
+          <button class="btn-secundario" onclick="editarDatosAlumno()">Editar datos</button>
+          <button class="btn-secundario" onclick="exportar('pdf')">Exportar PDF</button>
+          <button class="btn-secundario" onclick="exportar('word')">Exportar Word</button>
+          <button class="btn-peligro" onclick="eliminarAlumnoActual()">Eliminar legajo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3 style="margin-top:0">Agregar entrada al legajo</h3>
+      <div class="fila-acciones">
+        <select id="nuevaCategoria"></select>
+      </div>
+      <textarea id="nuevaDescripcion" placeholder="Describí la situación…"></textarea>
+      <div style="margin-top:10px">
+        <button class="btn-principal" onclick="agregarEntrada()">Guardar entrada</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3 style="margin-top:0">Registro de seguimiento</h3>
+      <div id="listaEntradas"></div>
+    </div>
+  </section>
+
+  <div id="cargando" class="cargando">Cargando…</div>
+</main>
+
+<footer>Legajos Nivel Inicial — datos almacenados en Google Sheets y Drive</footer>
+
+<script>
+// ============ CONFIGURACIÓN ============
+// Pegá acá la URL de tu Apps Script Web App después de desplegarlo
+// (Implementar > Nueva implementación > Aplicación web)
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5DIulgCWzd-wT5F2Yu9gJIIVbywtWjez-vyiE679ErT2Y9vceN5lkoi8xLwuKAPw3/exec';
+
+let usuarioActual = null;
+let alumnos = [];
+let idAlumnoActual = null;
+let modoSeleccionLote = false;
+let categoriasDisponibles = [];
+
+// Paleta rotativa para colorear categorías automáticamente, sin importar
+// cuáles agregues o saques en la hoja "Categorias" de la planilla.
+const PALETA_CATEGORIAS = [
+  { fondo: '#E4EEF7', texto: '#3E6E96' },
+  { fondo: '#F7EEE1', texto: '#96693E' },
+  { fondo: '#F7E1E1', texto: '#964343' },
+  { fondo: '#EAE1F7', texto: '#6C4396' },
+  { fondo: '#E1F0E8', texto: '#3E7A5D' },
+  { fondo: '#F7E1EF', texto: '#96436F' },
+  { fondo: '#EAEAEA', texto: '#555555' }
+];
+
+function colorParaCategoria(nombre) {
+  let hash = 0;
+  for (let i = 0; i < nombre.length; i++) hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
+  const indice = Math.abs(hash) % PALETA_CATEGORIAS.length;
+  return PALETA_CATEGORIAS[indice];
+}
+
+// ============ LLAMADAS AL BACKEND ============
+async function llamar(action, extra) {
+  const cuerpo = Object.assign({ action: action }, extra || {});
+  const resp = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(cuerpo)
+  });
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  return data;
+}
+
+function mostrarMensaje(texto, tipo) {
+  const div = document.getElementById('mensajes');
+  div.innerHTML = '<div class="mensaje mensaje-' + (tipo || 'error') + '">' + texto + '</div>';
+  setTimeout(function () { div.innerHTML = ''; }, 6000);
+}
+
+// ============ INICIO ============
+async function iniciar() {
+  if (APPS_SCRIPT_URL.indexOf('PEGAR_ACA') !== -1) {
+    document.getElementById('cargando').innerHTML =
+      'Falta configurar la URL del Apps Script en index.html (constante APPS_SCRIPT_URL).';
+    return;
+  }
+  try {
+    const data = await llamar('whoami');
+    usuarioActual = data.usuario;
+    document.getElementById('usuarioInfo').innerHTML =
+      usuarioActual.nombre + '<br><small>' + usuarioActual.rol + '</small>';
+    await cargarCategorias();
+    await cargarAlumnos();
+    mostrarVista('vistaListado');
+  } catch (err) {
+    document.getElementById('cargando').innerHTML = err.message;
+  }
+}
+
+async function cargarCategorias() {
+  const data = await llamar('listarCategorias');
+  categoriasDisponibles = data.categorias;
+  const sel = document.getElementById('nuevaCategoria');
+  sel.innerHTML = categoriasDisponibles.map(c => '<option>' + c + '</option>').join('');
+}
+
+async function cargarAlumnos() {
+  const data = await llamar('listarAlumnos');
+  alumnos = data.alumnos;
+  const salas = [...new Set(alumnos.map(a => a.sala).filter(Boolean))];
+  const sel = document.getElementById('filtroSala');
+  sel.innerHTML = '<option value="">Todas las salas</option>' +
+    salas.map(s => '<option value="' + s + '">' + s + '</option>').join('');
+  renderizarListado();
+}
+
+function mostrarVista(id) {
+  document.querySelectorAll('main > section').forEach(s => s.classList.add('oculto'));
+  document.getElementById('cargando').classList.add('oculto');
+  document.getElementById(id).classList.remove('oculto');
+}
+
+// ============ LISTADO ============
+function renderizarListado() {
+  const q = document.getElementById('buscarAlumno').value.toLowerCase();
+  const sala = document.getElementById('filtroSala').value;
+  const estado = document.getElementById('filtroEstado').value;
+  document.getElementById('thCheck').innerHTML = modoSeleccionLote ? '' : '';
+
+  const filtrados = alumnos.filter(a => {
+    const texto = (a.apellido + ' ' + a.nombre).toLowerCase();
+    if (q && texto.indexOf(q) === -1) return false;
+    if (sala && a.sala !== sala) return false;
+    if (estado && a.estado !== estado) return false;
+    return true;
+  });
+
+  const cuerpo = document.getElementById('cuerpoListado');
+  cuerpo.innerHTML = filtrados.map(a => {
+    const claseEstado = a.estado === 'Activo' ? 'estado-activo' : 'estado-pase';
+    const check = modoSeleccionLote
+      ? '<input type="checkbox" class="check-lote" value="' + a.id + '" onclick="event.stopPropagation()">'
+      : '';
+    return '<tr class="fila-alumno" onclick="abrirLegajo(\'' + a.id + '\')">' +
+      '<td>' + check + '</td>' +
+      '<td>' + a.apellido + ', ' + a.nombre + '</td>' +
+      '<td>' + (a.sala || '—') + '</td>' +
+      '<td>' + (a.dni || '—') + '</td>' +
+      '<td><span class="etiqueta-estado ' + claseEstado + '">' + a.estado + '</span></td>' +
+      '</tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--tinta-suave)">No hay alumnos que coincidan.</td></tr>';
+}
+
+// ============ NUEVO ALUMNO ============
+function abrirFormularioNuevoAlumno() {
+  mostrarVista('vistaNuevoAlumno');
+}
+
+async function crearAlumno() {
+  const data = {
+    nombre: document.getElementById('nuevoNombre').value.trim(),
+    apellido: document.getElementById('nuevoApellido').value.trim(),
+    dni: document.getElementById('nuevoDNI').value.trim(),
+    fechaNacimiento: document.getElementById('nuevoFechaNac').value,
+    sala: document.getElementById('nuevoSala').value.trim()
+  };
+  if (!data.nombre || !data.apellido) { mostrarMensaje('Completá nombre y apellido.'); return; }
+  try {
+    await llamar('crearAlumno', { data: data });
+    mostrarMensaje('Legajo creado.', 'ok');
+    await cargarAlumnos();
+    mostrarVista('vistaListado');
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+// ============ LEGAJO INDIVIDUAL ============
+async function abrirLegajo(id) {
+  idAlumnoActual = id;
+  mostrarVista('vistaLegajo');
+  document.getElementById('legajoNombre').textContent = 'Cargando…';
+  const data = await llamar('obtenerLegajo', { idAlumno: id });
+  const al = data.legajo.alumno;
+  document.getElementById('legajoNombre').textContent = al.apellido + ', ' + al.nombre;
+  document.getElementById('legajoDatos').innerHTML =
+    'DNI: ' + (al.dni || '—') + ' &nbsp;·&nbsp; Sala: ' + (al.sala || '—') +
+    ' &nbsp;·&nbsp; Estado: ' + al.estado + ' &nbsp;·&nbsp; Legajo creado por ' + al.creadoPor;
+
+  const cont = document.getElementById('listaEntradas');
+  if (data.legajo.entradas.length === 0) {
+    cont.innerHTML = '<p style="color:var(--tinta-suave)">Todavía no hay entradas registradas.</p>';
+  } else {
+    cont.innerHTML = data.legajo.entradas.map(en => {
+      const color = colorParaCategoria(en.categoria);
+      const estiloCat = 'background:' + color.fondo + ';color:' + color.texto + ';';
+      const fecha = new Date(en.fecha).toLocaleDateString('es-AR');
+      return '<div class="entrada">' +
+        '<span class="categoria-etiqueta" style="' + estiloCat + '">' + en.categoria + '</span>' +
+        '<div class="entrada-meta">' + fecha + ' — cargado por ' + en.cargadoPor + ' (' + en.rolCargador + ')</div>' +
+        '<div class="entrada-desc">' + escaparHtml(en.descripcion) + '</div>' +
+        '<div class="entrada-acciones">' +
+        '<button class="btn-secundario btn-chico" onclick="eliminarEntrada(\'' + en.id + '\')">Eliminar</button>' +
+        '</div></div>';
+    }).join('');
+  }
+}
+
+function escaparHtml(t) {
+  const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+}
+
+async function agregarEntrada() {
+  const categoria = document.getElementById('nuevaCategoria').value;
+  const descripcion = document.getElementById('nuevaDescripcion').value.trim();
+  if (!descripcion) { mostrarMensaje('Escribí una descripción.'); return; }
+  try {
+    await llamar('agregarEntrada', { data: { idAlumno: idAlumnoActual, categoria: categoria, descripcion: descripcion } });
+    document.getElementById('nuevaDescripcion').value = '';
+    mostrarMensaje('Entrada guardada.', 'ok');
+    await abrirLegajo(idAlumnoActual);
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function eliminarEntrada(id) {
+  if (!confirm('¿Eliminar esta entrada del legajo? No se puede deshacer.')) return;
+  try {
+    await llamar('eliminarEntrada', { idEntrada: id });
+    await abrirLegajo(idAlumnoActual);
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function editarDatosAlumno() {
+  const al = alumnos.find(a => a.id === idAlumnoActual);
+  const sala = prompt('Sala:', al.sala);
+  if (sala === null) return;
+  try {
+    await llamar('editarAlumno', { data: { id: idAlumnoActual, sala: sala } });
+    await cargarAlumnos();
+    await abrirLegajo(idAlumnoActual);
+    mostrarMensaje('Datos actualizados.', 'ok');
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function eliminarAlumnoActual() {
+  if (!confirm('¿Eliminar este legajo completo? Esta acción lo marca como eliminado y no se puede deshacer desde la app.')) return;
+  try {
+    await llamar('eliminarAlumno', { idAlumno: idAlumnoActual });
+    mostrarMensaje('Legajo eliminado.', 'ok');
+    await cargarAlumnos();
+    mostrarVista('vistaListado');
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function exportar(formato) {
+  mostrarMensaje('Generando archivo, esperá un momento…', 'ok');
+  try {
+    const data = await llamar(formato === 'pdf' ? 'exportarLegajoPDF' : 'exportarLegajoWord', { idAlumno: idAlumnoActual });
+    window.open(data.url, '_blank');
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+// ============ EXPORTACIÓN EN LOTE (PASE A PRIMARIO) ============
+function abrirExportacionLote() {
+  modoSeleccionLote = !modoSeleccionLote;
+  if (modoSeleccionLote) {
+    mostrarMensaje('Tildá los alumnos que pasan a primario y volvé a tocar "Exportar pase a primario" para confirmar.', 'ok');
+  }
+  renderizarListado();
+  if (!modoSeleccionLote) return;
+  document.querySelector('main .fila-acciones button.btn-secundario').textContent = 'Confirmar selección y exportar';
+  document.querySelector('main .fila-acciones button.btn-secundario').setAttribute('onclick', 'confirmarExportacionLote()');
+}
+
+async function confirmarExportacionLote() {
+  const ids = [...document.querySelectorAll('.check-lote:checked')].map(c => c.value);
+  if (ids.length === 0) { mostrarMensaje('Seleccioná al menos un alumno.'); return; }
+  if (!confirm('Se va a exportar el legajo de ' + ids.length + ' alumno(s) y se van a marcar como "Pasó a Primario". ¿Confirmás?')) return;
+  mostrarMensaje('Generando legajos, esperá un momento…', 'ok');
+  try {
+    const data = await llamar('exportarLotePaseAPrimario', { idsAlumnos: ids });
+    window.open(data.urlCarpeta, '_blank');
+    modoSeleccionLote = false;
+    document.querySelector('main .fila-acciones button.btn-secundario').textContent = 'Exportar pase a primario';
+    document.querySelector('main .fila-acciones button.btn-secundario').setAttribute('onclick', 'abrirExportacionLote()');
+    await cargarAlumnos();
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+iniciar();
+</script>
+</body>
+</html>
