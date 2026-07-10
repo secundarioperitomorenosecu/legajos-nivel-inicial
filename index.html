@@ -176,6 +176,18 @@
   .mensaje-ok { background: #E4F5EE; color: var(--menta-oscura); }
 
   .cargando { text-align: center; color: var(--tinta-suave); padding: 50px; font-size: 14px; }
+
+  .adjunto {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; margin-bottom: 8px;
+    background: #FBF9FF;
+  }
+  .adjunto-icono { font-size: 22px; }
+  .adjunto-info { flex: 1; min-width: 0; }
+  .adjunto-nombre { font-weight: 700; font-size: 13px; }
+  .adjunto-meta { font-size: 11px; color: var(--tinta-suave); }
+  .adjunto-nombre a { color: var(--lavanda-oscura); text-decoration: none; }
+  .adjunto-nombre a:hover { text-decoration: underline; }
   footer { text-align: center; padding: 30px; font-size: 12px; color: var(--tinta-suave); }
 </style>
 </head>
@@ -209,17 +221,17 @@
       <table>
         <thead><tr>
           <th style="width:30px" id="thCheck"></th>
-          <th>Apellido, Nombre</th><th>Sala</th><th>DNI</th><th>Estado</th>
+          <th>Apellido, Nombre</th><th>Sala</th><th>DNI</th><th>Estado</th><th style="width:90px"></th>
         </tr></thead>
         <tbody id="cuerpoListado"></tbody>
       </table>
     </div>
   </section>
 
-  <!-- VISTA: NUEVO ALUMNO -->
+  <!-- VISTA: NUEVO ALUMNO / EDITAR ALUMNO -->
   <section id="vistaNuevoAlumno" class="oculto">
     <div class="tarjeta">
-      <h2>Nuevo legajo</h2>
+      <h2 id="tituloFormAlumno">Nuevo legajo</h2>
       <div class="fila-acciones">
         <input id="nuevoNombre" placeholder="Nombre">
         <input id="nuevoApellido" placeholder="Apellido">
@@ -228,10 +240,14 @@
       <div class="fila-acciones">
         <input id="nuevoFechaNac" type="date" placeholder="Fecha de nacimiento">
         <input id="nuevoSala" placeholder="Sala (ej: Sala Verde)">
+        <select id="nuevoEstado">
+          <option value="Activo">Activo</option>
+          <option value="Pasó a Primario">Pasó a Primario</option>
+        </select>
       </div>
       <div class="fila-acciones">
-        <button class="btn-principal" onclick="crearAlumno()">Crear legajo</button>
-        <button class="btn-secundario" onclick="mostrarVista('vistaListado')">Cancelar</button>
+        <button class="btn-principal" id="botonGuardarAlumno" onclick="crearAlumno()">Crear legajo</button>
+        <button class="btn-secundario" onclick="cancelarFormularioAlumno()">Cancelar</button>
       </div>
     </div>
   </section>
@@ -263,6 +279,16 @@
       <div style="margin-top:10px">
         <button class="btn-principal" onclick="agregarEntrada()">Guardar entrada</button>
       </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3 style="margin-top:0">📎 Archivos adjuntos</h3>
+      <div class="fila-acciones">
+        <input type="file" id="inputAdjunto" accept="image/*,application/pdf">
+        <button class="btn-principal" onclick="subirAdjunto()">Subir</button>
+      </div>
+      <div id="estadoSubida" style="font-size:13px; color:var(--tinta-suave); margin-bottom:10px;"></div>
+      <div id="listaAdjuntos"></div>
     </div>
 
     <div class="tarjeta">
@@ -456,13 +482,56 @@ function renderizarListado() {
       '<td>' + (a.sala || '—') + '</td>' +
       '<td>' + (a.dni || '—') + '</td>' +
       '<td><span class="etiqueta-estado ' + claseEstado + '">' + a.estado + '</span></td>' +
+      '<td onclick="event.stopPropagation()">' +
+        '<button class="btn-secundario btn-chico" title="Editar" onclick="abrirFormularioEditarAlumno(\'' + a.id + '\')">✏️</button> ' +
+        '<button class="btn-peligro btn-chico" title="Eliminar" onclick="eliminarAlumnoDesdeListado(\'' + a.id + '\')">🗑️</button>' +
+      '</td>' +
       '</tr>';
-  }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--tinta-suave)">No hay alumnos que coincidan.</td></tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--tinta-suave)">No hay alumnos que coincidan.</td></tr>';
 }
 
-// ============ NUEVO ALUMNO ============
+// ============ NUEVO ALUMNO / EDITAR ALUMNO ============
+let idAlumnoEnEdicion = null;
+let origenEdicionAlumno = 'listado';
+
 function abrirFormularioNuevoAlumno() {
+  idAlumnoEnEdicion = null;
+  origenEdicionAlumno = 'listado';
+  document.getElementById('tituloFormAlumno').textContent = 'Nuevo legajo';
+  document.getElementById('botonGuardarAlumno').textContent = 'Crear legajo';
+  document.getElementById('botonGuardarAlumno').setAttribute('onclick', 'crearAlumno()');
+  document.getElementById('nuevoNombre').value = '';
+  document.getElementById('nuevoApellido').value = '';
+  document.getElementById('nuevoDNI').value = '';
+  document.getElementById('nuevoFechaNac').value = '';
+  document.getElementById('nuevoSala').value = '';
+  document.getElementById('nuevoEstado').value = 'Activo';
   mostrarVista('vistaNuevoAlumno');
+}
+
+function abrirFormularioEditarAlumno(id) {
+  const a = alumnos.find(x => x.id === id);
+  if (!a) return;
+  idAlumnoEnEdicion = id;
+  origenEdicionAlumno = 'listado';
+  document.getElementById('tituloFormAlumno').textContent = 'Editar legajo';
+  document.getElementById('botonGuardarAlumno').textContent = 'Guardar cambios';
+  document.getElementById('botonGuardarAlumno').setAttribute('onclick', 'guardarEdicionAlumno()');
+  document.getElementById('nuevoNombre').value = a.nombre || '';
+  document.getElementById('nuevoApellido').value = a.apellido || '';
+  document.getElementById('nuevoDNI').value = a.dni || '';
+  document.getElementById('nuevoFechaNac').value = a.fechaNacimiento ? a.fechaNacimiento.split('T')[0] : '';
+  document.getElementById('nuevoSala').value = a.sala || '';
+  document.getElementById('nuevoEstado').value = a.estado || 'Activo';
+  mostrarVista('vistaNuevoAlumno');
+}
+
+function cancelarFormularioAlumno() {
+  if (origenEdicionAlumno === 'legajo' && idAlumnoEnEdicion) {
+    abrirLegajo(idAlumnoEnEdicion);
+  } else {
+    mostrarVista('vistaListado');
+  }
 }
 
 async function crearAlumno() {
@@ -479,6 +548,39 @@ async function crearAlumno() {
     mostrarMensaje('Legajo creado.', 'ok');
     await cargarAlumnos();
     mostrarVista('vistaListado');
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function guardarEdicionAlumno() {
+  const data = {
+    id: idAlumnoEnEdicion,
+    nombre: document.getElementById('nuevoNombre').value.trim(),
+    apellido: document.getElementById('nuevoApellido').value.trim(),
+    dni: document.getElementById('nuevoDNI').value.trim(),
+    fechaNacimiento: document.getElementById('nuevoFechaNac').value,
+    sala: document.getElementById('nuevoSala').value.trim(),
+    estado: document.getElementById('nuevoEstado').value
+  };
+  if (!data.nombre || !data.apellido) { mostrarMensaje('Completá nombre y apellido.'); return; }
+  try {
+    await llamar('editarAlumno', { data: data });
+    mostrarMensaje('Legajo actualizado.', 'ok');
+    await cargarAlumnos();
+    if (origenEdicionAlumno === 'legajo') {
+      await abrirLegajo(idAlumnoEnEdicion);
+    } else {
+      mostrarVista('vistaListado');
+    }
+  } catch (err) { mostrarMensaje(err.message); }
+}
+
+async function eliminarAlumnoDesdeListado(id) {
+  const a = alumnos.find(x => x.id === id);
+  if (!confirm('¿Eliminar el legajo de ' + (a ? a.nombre + ' ' + a.apellido : 'este alumno') + '? Esta acción no se puede deshacer desde la app.')) return;
+  try {
+    await llamar('eliminarAlumno', { idAlumno: id });
+    mostrarMensaje('Legajo eliminado.', 'ok');
+    await cargarAlumnos();
   } catch (err) { mostrarMensaje(err.message); }
 }
 
@@ -511,10 +613,115 @@ async function abrirLegajo(id) {
         '</div></div>';
     }).join('');
   }
+
+  renderizarAdjuntos(data.legajo.adjuntos || []);
+}
+
+function renderizarAdjuntos(adjuntos) {
+  const cont = document.getElementById('listaAdjuntos');
+  if (adjuntos.length === 0) {
+    cont.innerHTML = '<p style="color:var(--tinta-suave); font-size:13px">Todavía no hay archivos adjuntos.</p>';
+    return;
+  }
+  cont.innerHTML = adjuntos.map(adj => {
+    const icono = adj.tipoArchivo === 'Imagen' ? '🖼️' : '📄';
+    const fecha = new Date(adj.fecha).toLocaleDateString('es-AR');
+    return '<div class="adjunto">' +
+      '<div class="adjunto-icono">' + icono + '</div>' +
+      '<div class="adjunto-info">' +
+      '<div class="adjunto-nombre"><a href="' + adj.url + '" target="_blank" rel="noopener">' + escaparHtml(adj.nombreArchivo) + '</a></div>' +
+      '<div class="adjunto-meta">' + fecha + ' — subido por ' + escaparHtml(adj.subidoPor) + '</div>' +
+      '</div>' +
+      '<button class="btn-peligro btn-chico" onclick="eliminarAdjunto(\'' + adj.id + '\')">Eliminar</button>' +
+      '</div>';
+  }).join('');
 }
 
 function escaparHtml(t) {
   const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+}
+
+// ============ SUBIR / ELIMINAR ADJUNTOS ============
+
+// Comprime una imagen redibujándola en un canvas más chico y reexportándola
+// como JPEG de calidad alta. Los PDF no se tocan (no se pueden comprimir así).
+function comprimirImagen(file, ladoMaximo, calidad) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    lector.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('No se pudo procesar la imagen'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > ladoMaximo) { h = Math.round(h * ladoMaximo / w); w = ladoMaximo; }
+        else if (h > ladoMaximo) { w = Math.round(w * ladoMaximo / h); h = ladoMaximo; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      };
+      img.src = e.target.result;
+    };
+    lector.readAsDataURL(file);
+  });
+}
+
+function leerComoDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    lector.onload = (e) => resolve(e.target.result);
+    lector.readAsDataURL(file);
+  });
+}
+
+async function subirAdjunto() {
+  const input = document.getElementById('inputAdjunto');
+  const file = input.files[0];
+  if (!file) { mostrarMensaje('Elegí una foto o un PDF primero.'); return; }
+
+  const estado = document.getElementById('estadoSubida');
+  const esImagen = file.type.indexOf('image/') === 0;
+  const esPdf = file.type === 'application/pdf';
+  if (!esImagen && !esPdf) { mostrarMensaje('Solo se aceptan fotos o archivos PDF.'); return; }
+
+  try {
+    estado.textContent = esImagen ? 'Comprimiendo imagen…' : 'Preparando archivo…';
+    let dataUrl, nombreArchivo, tipoMime;
+    if (esImagen) {
+      dataUrl = await comprimirImagen(file, 1600, 0.8);
+      tipoMime = 'image/jpeg';
+      nombreArchivo = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    } else {
+      dataUrl = await leerComoDataURL(file);
+      tipoMime = file.type;
+      nombreArchivo = file.name;
+    }
+    const base64 = dataUrl.split(',')[1];
+
+    estado.textContent = 'Subiendo a Drive…';
+    await llamar('subirAdjunto', {
+      data: { idAlumno: idAlumnoActual, nombreArchivo: nombreArchivo, tipoMime: tipoMime, contenidoBase64: base64 }
+    });
+
+    estado.textContent = '';
+    input.value = '';
+    mostrarMensaje('Archivo subido.', 'ok');
+    await abrirLegajo(idAlumnoActual);
+  } catch (err) {
+    estado.textContent = '';
+    mostrarMensaje(err.message);
+  }
+}
+
+async function eliminarAdjunto(id) {
+  if (!confirm('¿Eliminar este archivo adjunto? No se puede deshacer.')) return;
+  try {
+    await llamar('eliminarAdjunto', { idAdjunto: id });
+    mostrarMensaje('Archivo eliminado.', 'ok');
+    await abrirLegajo(idAlumnoActual);
+  } catch (err) { mostrarMensaje(err.message); }
 }
 
 async function agregarEntrada() {
@@ -538,15 +745,8 @@ async function eliminarEntrada(id) {
 }
 
 async function editarDatosAlumno() {
-  const al = alumnos.find(a => a.id === idAlumnoActual);
-  const sala = prompt('Sala:', al.sala);
-  if (sala === null) return;
-  try {
-    await llamar('editarAlumno', { data: { id: idAlumnoActual, sala: sala } });
-    await cargarAlumnos();
-    await abrirLegajo(idAlumnoActual);
-    mostrarMensaje('Datos actualizados.', 'ok');
-  } catch (err) { mostrarMensaje(err.message); }
+  abrirFormularioEditarAlumno(idAlumnoActual);
+  origenEdicionAlumno = 'legajo';
 }
 
 async function eliminarAlumnoActual() {
